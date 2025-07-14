@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dataset Loading</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Dataset Loading Test</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Dataset Select</h3>
+                <select class="form-select" id="datasetSelect">
+                    <option value="">Loading datasets...</option>
+                </select>
+                
+                <button class="btn btn-primary mt-3" onclick="loadDatasets()">Reload Datasets</button>
+                <button class="btn btn-info mt-3" onclick="testAPI()">Test API</button>
+            </div>
+            
+            <div class="col-md-6">
+                <h3>Debug Output</h3>
+                <div id="debugOutput" class="border p-3" style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
+                    <p>Ready to test...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('debugOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function testAPI() {
+            log('🔍 Testing API directly...');
+            try {
+                const response = await fetch('/api/upload/datasets');
+                log(`📡 Response status: ${response.status}`);
+                
+                const result = await response.json();
+                log(`📊 API Result: ${JSON.stringify(result, null, 2)}`);
+                
+                if (result.success && result.datasets) {
+                    log(`✅ Found ${result.datasets.length} datasets`);
+                    result.datasets.forEach((dataset, index) => {
+                        log(`📁 Dataset ${index + 1}: ${dataset.info.name} (${dataset.info.rows} rows)`);
+                    });
+                } else {
+                    log('⚠️ No datasets found or API error');
+                }
+            } catch (error) {
+                log(`❌ API Error: ${error.message}`);
+            }
+        }
+
+        async function loadDatasets() {
+            try {
+                log('🔍 Loading datasets into select...');
+                const response = await fetch('/api/upload/datasets');
+                log(`📡 Response status: ${response.status}`);
+                
+                const result = await response.json();
+                log(`📊 API Result received`);
+                
+                const select = document.getElementById('datasetSelect');
+                if (!select) {
+                    log('❌ Dataset select element not found!');
+                    return;
+                }
+                
+                select.innerHTML = '<option value="">Choose a dataset...</option>';
+                
+                if (result.success && result.datasets && result.datasets.length > 0) {
+                    log(`✅ Found ${result.datasets.length} datasets`);
+                    result.datasets.forEach((dataset, index) => {
+                        log(`📁 Adding dataset ${index + 1}: ${dataset.info.name}`);
+                        const option = document.createElement('option');
+                        option.value = dataset.dataset_id;
+                        option.textContent = `${dataset.info.name} (${dataset.info.rows} rows)`;
+                        select.appendChild(option);
+                    });
+                    log('✅ Datasets loaded successfully into select');
+                } else {
+                    log('⚠️ No datasets found or API returned error');
+                    if (!result.success) {
+                        log(`API Error: ${result.message || 'Unknown error'}`);
+                    }
+                }
+            } catch (error) {
+                log(`❌ Error loading datasets: ${error.message}`);
+            }
+        }
+
+        // Load datasets when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Page loaded, starting dataset load...');
+            loadDatasets();
+        });
+    </script>
+</body>
+</html>
